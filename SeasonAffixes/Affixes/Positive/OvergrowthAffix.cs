@@ -1,4 +1,7 @@
-﻿using HarmonyLib;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Shockah.Kokoro;
 using Shockah.Kokoro.Stardew;
@@ -8,15 +11,11 @@ using StardewValley.Extensions;
 using StardewValley.GameData.Locations;
 using StardewValley.Internal;
 using StardewValley.TerrainFeatures;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using SObject = StardewValley.Object;
 
 namespace Shockah.SeasonAffixes;
 
-internal sealed class OvergrowthAffix : BaseSeasonAffix, ISeasonAffix
-{
+internal sealed class OvergrowthAffix : BaseSeasonAffix, ISeasonAffix {
 	private static bool IsHarmonySetup = false;
 	private static readonly int SpawnDelay = 250;
 
@@ -37,8 +36,7 @@ internal sealed class OvergrowthAffix : BaseSeasonAffix, ISeasonAffix
 	public void OnRegister()
 		=> Apply(Mod.Harmony);
 
-	private void Apply(Harmony harmony)
-	{
+	private void Apply(Harmony harmony) {
 		if (IsHarmonySetup)
 			return;
 		IsHarmonySetup = true;
@@ -50,8 +48,7 @@ internal sealed class OvergrowthAffix : BaseSeasonAffix, ISeasonAffix
 		);
 	}
 
-	private static void Crop_harvest_Postfix(int xTile, int yTile, HoeDirt soil, ref bool __result)
-	{
+	private static void Crop_harvest_Postfix(int xTile, int yTile, HoeDirt soil, ref bool __result) {
 		if (!__result)
 			return;
 		if (!Mod.IsAffixActive(a => a is OvergrowthAffix))
@@ -65,15 +62,13 @@ internal sealed class OvergrowthAffix : BaseSeasonAffix, ISeasonAffix
 		Poof(soil.Location, point);
 		var location = soil.Location;
 
-		DelayedAction.functionAfterDelay(() =>
-		{
+		DelayedAction.functionAfterDelay(() => {
 			location.removeObjectsAndSpawned(xTile, yTile, 1, 1);
 			location.dropObject(forage, point * 64, Game1.viewport, initialPlacement: true);
 		}, SpawnDelay);
 	}
 
-	private static SObject? GetForageToSpawn(GameLocation location)
-	{
+	private static SObject? GetForageToSpawn(GameLocation location) {
 		var random = new Random();
 		var possibleForage = GetPossibleForage(location, random);
 		if (possibleForage.Count == 0)
@@ -87,18 +82,16 @@ internal sealed class OvergrowthAffix : BaseSeasonAffix, ISeasonAffix
 		var forage = weighted.Next(random);
 		if (forage is null)
 			return null;
-		if (ItemQueryResolver.TryResolveRandomItem(forage, new ItemQueryContext(location, null, random)) is not SObject item)
+		if (ItemQueryResolver.TryResolveRandomItem(forage, new ItemQueryContext(location, null, random, "SeasonAffixes: Overgrowth Affix")) is not SObject item)
 			return null;
 		return item;
 	}
 
-	private static List<SpawnForageData> GetPossibleForage(GameLocation location, Random random)
-	{
+	private static List<SpawnForageData> GetPossibleForage(GameLocation location, Random random) {
 		List<SpawnForageData> forage = new();
 		forage.AddRange(GetPossibleForage(location, location.Name, random));
 
-		if (forage.Count == 0)
-		{
+		if (forage.Count == 0) {
 			forage.AddRange(GetPossibleForage(location, "BusStop", random));
 			forage.AddRange(GetPossibleForage(location, "Forest", random));
 			forage.AddRange(GetPossibleForage(location, "Town", random));
@@ -109,15 +102,13 @@ internal sealed class OvergrowthAffix : BaseSeasonAffix, ISeasonAffix
 		return forage;
 	}
 
-	private static List<SpawnForageData> GetPossibleForage(GameLocation location, string dataLocationName, Random random)
-	{
+	private static List<SpawnForageData> GetPossibleForage(GameLocation location, string dataLocationName, Random random) {
 		var data = Game1.content.Load<Dictionary<string, LocationData>>("Data\\Locations");
 		if (!data.TryGetValue(dataLocationName, out var locationData))
 			return new List<SpawnForageData>();
 
 		return locationData.Forage
-			.Where(entry =>
-			{
+			.Where(entry => {
 				if (entry.Season is not null && entry.Season.Value != location.GetSeason())
 					return false;
 				if (entry.Condition is not null && !GameStateQuery.CheckConditions(entry.Condition, location, null, null, null, random))
@@ -127,8 +118,7 @@ internal sealed class OvergrowthAffix : BaseSeasonAffix, ISeasonAffix
 			.ToList();
 	}
 
-	private static void Poof(GameLocation location, Vector2 point)
-	{
+	private static void Poof(GameLocation location, Vector2 point) {
 		var sprite = new TemporaryAnimatedSprite(
 			textureName: Game1.mouseCursorsName,
 			sourceRect: new Rectangle(464, 1792, 16, 16),
@@ -145,10 +135,7 @@ internal sealed class OvergrowthAffix : BaseSeasonAffix, ISeasonAffix
 			scaleChange: 0.01f,
 			rotation: 0f,
 			rotationChange: 0f
-		)
-		{
-			light = true
-		};
+		);
 		Game1.Multiplayer.broadcastSprites(location, sprite);
 	}
 }
