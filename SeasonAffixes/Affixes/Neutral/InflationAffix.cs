@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-using HarmonyLib;
+﻿using HarmonyLib;
 using Nanoray.Shrike;
 using Nanoray.Shrike.Harmony;
 using Newtonsoft.Json;
@@ -19,15 +14,22 @@ using StardewValley.GameData.Buildings;
 using StardewValley.GameData.Tools;
 using StardewValley.Locations;
 using StardewValley.Menus;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 using SObject = StardewValley.Object;
 
 namespace Shockah.SeasonAffixes;
 
-partial class ModConfig {
+partial class ModConfig
+{
 	[JsonProperty] public float InflationIncrease { get; internal set; } = 0.2f;
 }
 
-internal sealed class InflationAffix : BaseSeasonAffix, ISeasonAffix {
+internal sealed class InflationAffix : BaseSeasonAffix, ISeasonAffix
+{
 	private static bool IsHarmonySetup = false;
 
 	private static string ShortID => "Inflation";
@@ -48,14 +50,16 @@ internal sealed class InflationAffix : BaseSeasonAffix, ISeasonAffix {
 	public void OnRegister()
 		=> Apply(Mod.Harmony);
 
-	public void OnActivate(AffixActivationContext context) {
+	public void OnActivate(AffixActivationContext context)
+	{
 		Mod.Helper.Events.Content.AssetRequested += OnAssetRequested;
 		Mod.Helper.Events.GameLoop.DayStarted += OnDayStarted;
 		Mod.Helper.Events.Display.MenuChanged += OnMenuChanged;
 		Mod.Helper.GameContent.InvalidateCache("Strings\\Locations");
 	}
 
-	public void OnDeactivate(AffixActivationContext context) {
+	public void OnDeactivate(AffixActivationContext context)
+	{
 		Mod.Helper.Events.Content.AssetRequested -= OnAssetRequested;
 		Mod.Helper.Events.GameLoop.DayStarted -= OnDayStarted;
 		Mod.Helper.Events.Display.MenuChanged -= OnMenuChanged;
@@ -63,15 +67,19 @@ internal sealed class InflationAffix : BaseSeasonAffix, ISeasonAffix {
 		PruneHandledContexts();
 	}
 
-	public void SetupConfig(IManifest manifest) {
+	public void SetupConfig(IManifest manifest)
+	{
 		var api = Mod.Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu")!;
 		GMCMI18nHelper helper = new(api, Mod.ModManifest, Mod.Helper.Translation);
 		helper.AddNumberOption($"{I18nPrefix}.config.increase", () => Mod.Config.InflationIncrease, min: 0.05f, max: 4f, interval: 0.05f, value => $"{(int)(value * 100):0.##}%");
 	}
 
-	private void OnAssetRequested(object? sender, AssetRequestedEventArgs e) {
-		if (e.Name.IsEquivalentTo("Strings\\Locations")) {
-			e.Edit(rawAsset => {
+	private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
+	{
+		if (e.Name.IsEquivalentTo("Strings\\Locations"))
+		{
+			e.Edit(rawAsset =>
+			{
 				var asset = rawAsset.AsDictionary<string, string>();
 				asset.Data["BusStop_BuyTicketToDesert"] = asset.Data["BusStop_BuyTicketToDesert"].Replace("500", $"{GetModifiedPrice(500)}");
 				asset.Data["ScienceHouse_Carpenter_UpgradeHouse1"] = asset.Data["ScienceHouse_Carpenter_UpgradeHouse1"].Replace("10,000", $"{GetModifiedPrice(10000):#,##0}").Replace("10.000", $"{GetModifiedPrice(10000):#.##0}");
@@ -80,14 +88,20 @@ internal sealed class InflationAffix : BaseSeasonAffix, ISeasonAffix {
 				asset.Data["ScienceHouse_Carpenter_CommunityUpgrade1"] = asset.Data["ScienceHouse_Carpenter_CommunityUpgrade1"].Replace("500,000", $"{GetModifiedPrice(500000):#,##0}").Replace("500.000", $"{GetModifiedPrice(500000):#.##0}");
 				asset.Data["ScienceHouse_Carpenter_CommunityUpgrade2"] = asset.Data["ScienceHouse_Carpenter_CommunityUpgrade2"].Replace("300,000", $"{GetModifiedPrice(300000):#,##0}").Replace("300.000", $"{GetModifiedPrice(300000):#.##0}");
 			});
-		} else if (e.Name.IsEquivalentTo("Data\\Buildings")) {
-			e.Edit(rawAsset => {
+		}
+		else if (e.Name.IsEquivalentTo("Data\\Buildings"))
+		{
+			e.Edit(rawAsset =>
+			{
 				var asset = rawAsset.AsDictionary<string, BuildingData>();
 				foreach (var (key, building) in asset.Data)
 					building.BuildCost = GetModifiedPrice(building.BuildCost);
 			});
-		} else if (e.Name.IsEquivalentTo("Data\\Tools")) {
-			e.Edit(rawAsset => {
+		}
+		else if (e.Name.IsEquivalentTo("Data\\Tools"))
+		{
+			e.Edit(rawAsset =>
+			{
 				var asset = rawAsset.AsDictionary<string, ToolData>();
 				foreach (var (key, tool) in asset.Data)
 					if (tool.SalePrice > 0)
@@ -100,7 +114,8 @@ internal sealed class InflationAffix : BaseSeasonAffix, ISeasonAffix {
 		=> PruneHandledContexts();
 
 	[EventPriority(EventPriority.Low - 10)]
-	private void OnMenuChanged(object? sender, MenuChangedEventArgs e) {
+	private void OnMenuChanged(object? sender, MenuChangedEventArgs e)
+	{
 		if (e.NewMenu is not ShopMenu menu)
 			return;
 		if (menu.currency != 0)
@@ -121,7 +136,8 @@ internal sealed class InflationAffix : BaseSeasonAffix, ISeasonAffix {
 			);
 	}
 
-	private void Apply(Harmony harmony) {
+	private void Apply(Harmony harmony)
+	{
 		if (IsHarmonySetup)
 			return;
 		IsHarmonySetup = true;
@@ -184,7 +200,8 @@ internal sealed class InflationAffix : BaseSeasonAffix, ISeasonAffix {
 	public static int GetModifiedPrice(int originalPrice)
 		=> (int)Math.Round(originalPrice * (1f + Mod.Config.InflationIncrease));
 
-	private int GetModifiedPrice(int originalPrice, object? context) {
+	private int GetModifiedPrice(int originalPrice, object? context)
+	{
 		if (context is null)
 			return GetModifiedPrice(originalPrice);
 		if (HandledContexts.Value.Any(r => r.TryGetTarget(out var handledContext) && ReferenceEquals(handledContext, context)))
@@ -193,7 +210,8 @@ internal sealed class InflationAffix : BaseSeasonAffix, ISeasonAffix {
 		return GetModifiedPrice(originalPrice);
 	}
 
-	private static void SObject_sellToStorePrice_Postfix(ref int __result) {
+	private static void SObject_sellToStorePrice_Postfix(ref int __result)
+	{
 		if (__result <= 0)
 			return;
 		var affix = Mod.ActiveAffixes.OfType<InflationAffix>().FirstOrDefault();
@@ -208,15 +226,18 @@ internal sealed class InflationAffix : BaseSeasonAffix, ISeasonAffix {
 	private static void BoatTunnel_ctor_Postfix(BoatTunnel __instance)
 		=> __instance.TicketPrice = GetModifiedPrice(__instance.TicketPrice);
 
-	private static IEnumerable<CodeInstruction> GameLocation_houseUpgradeAccept_Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase originalMethod) {
-		try {
+	private static IEnumerable<CodeInstruction> GameLocation_houseUpgradeAccept_Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase originalMethod)
+	{
+		try
+		{
 			return new SequenceBlockMatcher<CodeInstruction>(instructions)
 				.ForEach(
 					SequenceMatcherRelativeBounds.WholeSequence,
 					[
 						ILMatches.LdcI4(10000)
 					],
-					matcher => {
+					matcher =>
+					{
 						return matcher
 							.Insert(
 								SequenceMatcherPastBoundsDirection.After, SequenceMatcherInsertionResultingBounds.IncludingInsertion,
@@ -231,7 +252,8 @@ internal sealed class InflationAffix : BaseSeasonAffix, ISeasonAffix {
 					[
 						ILMatches.LdcI4(65000)
 					],
-					matcher => {
+					matcher =>
+					{
 						return matcher
 							.Insert(
 								SequenceMatcherPastBoundsDirection.After, SequenceMatcherInsertionResultingBounds.IncludingInsertion,
@@ -246,7 +268,8 @@ internal sealed class InflationAffix : BaseSeasonAffix, ISeasonAffix {
 					[
 						ILMatches.LdcI4(100000)
 					],
-					matcher => {
+					matcher =>
+					{
 						return matcher
 							.Insert(
 								SequenceMatcherPastBoundsDirection.After, SequenceMatcherInsertionResultingBounds.IncludingInsertion,
@@ -257,21 +280,26 @@ internal sealed class InflationAffix : BaseSeasonAffix, ISeasonAffix {
 					maxExpectedOccurences: 3
 				)
 				.AllElements();
-		} catch (Exception ex) {
+		}
+		catch (Exception ex)
+		{
 			Mod.Monitor.Log($"Could not patch method {originalMethod} - {Mod.ModManifest.Name} probably won't work.\nReason: {ex}", LogLevel.Error);
 			return instructions;
 		}
 	}
 
-	private static IEnumerable<CodeInstruction> GameLocation_communityUpgradeAccept_Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase originalMethod) {
-		try {
+	private static IEnumerable<CodeInstruction> GameLocation_communityUpgradeAccept_Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase originalMethod)
+	{
+		try
+		{
 			return new SequenceBlockMatcher<CodeInstruction>(instructions)
 				.ForEach(
 					SequenceMatcherRelativeBounds.WholeSequence,
 					[
 						ILMatches.LdcI4(500000)
 					],
-					matcher => {
+					matcher =>
+					{
 						return matcher
 							.Insert(
 								SequenceMatcherPastBoundsDirection.After, SequenceMatcherInsertionResultingBounds.IncludingInsertion,
@@ -286,7 +314,8 @@ internal sealed class InflationAffix : BaseSeasonAffix, ISeasonAffix {
 					[
 						ILMatches.LdcI4(300000)
 					],
-					matcher => {
+					matcher =>
+					{
 						return matcher
 							.Insert(
 								SequenceMatcherPastBoundsDirection.After, SequenceMatcherInsertionResultingBounds.IncludingInsertion,
@@ -297,7 +326,9 @@ internal sealed class InflationAffix : BaseSeasonAffix, ISeasonAffix {
 					maxExpectedOccurences: 3
 				)
 				.AllElements();
-		} catch (Exception ex) {
+		}
+		catch (Exception ex)
+		{
 			Mod.Monitor.Log($"Could not patch method {originalMethod} - {Mod.ModManifest.Name} probably won't work.\nReason: {ex}", LogLevel.Error);
 			return instructions;
 		}

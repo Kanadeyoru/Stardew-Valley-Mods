@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
-using HarmonyLib;
+﻿using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Nanoray.Shrike;
+using Nanoray.Shrike.Harmony;
 using Shockah.Kokoro;
 using Shockah.Kokoro.Stardew;
 using Shockah.Kokoro.UI;
@@ -16,10 +11,17 @@ using StardewValley;
 using StardewValley.GameData.Crops;
 using StardewValley.Objects;
 using StardewValley.TerrainFeatures;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 
 namespace Shockah.SeasonAffixes;
 
-internal sealed class RegrowthAffix : BaseVariantedSeasonAffix, ISeasonAffix {
+internal sealed class RegrowthAffix : BaseVariantedSeasonAffix, ISeasonAffix
+{
 	private static bool IsHarmonySetup = false;
 	private static readonly WeakCounter<Crop> GetSourceRectCallCounter = new();
 	private static readonly ConditionalWeakTable<Crop, StructRef<int>> OldPhaseToShow = new();
@@ -37,7 +39,8 @@ internal sealed class RegrowthAffix : BaseVariantedSeasonAffix, ISeasonAffix {
 
 	private readonly HashSet<string> AdjustedCrops = new();
 
-	public RegrowthAffix(AffixVariant variant) : base(variant == AffixVariant.Positive ? ShortPositiveID : ShortNegativeID, variant) {
+	public RegrowthAffix(AffixVariant variant) : base(variant == AffixVariant.Positive ? ShortPositiveID : ShortNegativeID, variant)
+	{
 		Tags = Variant == AffixVariant.Positive
 			? new HashSet<string> { VanillaSkill.CropsAspect, VanillaSkill.FlowersAspect }
 			: new HashSet<string> { VanillaSkill.CropsAspect };
@@ -49,9 +52,7 @@ internal sealed class RegrowthAffix : BaseVariantedSeasonAffix, ISeasonAffix {
 	public int GetNegativity(OrdinalSeason season)
 		=> Variant == AffixVariant.Negative ? 1 : 0;
 
-	public IReadOnlySet<string> Tags {
-		get; init;
-	}
+	public IReadOnlySet<string> Tags { get; init; }
 
 	public double GetProbabilityWeight(OrdinalSeason season)
 		=> Mod.Config.WinterCrops || season.Season != Season.Winter ? 1 : 0;
@@ -59,19 +60,22 @@ internal sealed class RegrowthAffix : BaseVariantedSeasonAffix, ISeasonAffix {
 	public void OnRegister()
 		=> Apply(Mod.Harmony);
 
-	public void OnActivate(AffixActivationContext context) {
+	public void OnActivate(AffixActivationContext context)
+	{
 		Mod.Helper.Events.Content.AssetRequested += OnAssetRequested;
 		Mod.Helper.GameContent.InvalidateCache("Data\\Crops");
 		UpdateExistingCrops();
 	}
 
-	public void OnDeactivate(AffixActivationContext context) {
+	public void OnDeactivate(AffixActivationContext context)
+	{
 		Mod.Helper.Events.Content.AssetRequested -= OnAssetRequested;
 		Mod.Helper.GameContent.InvalidateCache("Data\\Crops");
 		UpdateExistingCrops();
 	}
 
-	private void Apply(Harmony harmony) {
+	private void Apply(Harmony harmony)
+	{
 		if (IsHarmonySetup)
 			return;
 		IsHarmonySetup = true;
@@ -85,22 +89,30 @@ internal sealed class RegrowthAffix : BaseVariantedSeasonAffix, ISeasonAffix {
 		);
 	}
 
-	private void OnAssetRequested(object? sender, AssetRequestedEventArgs e) {
+	private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
+	{
 		if (!e.Name.IsEquivalentTo("Data\\Crops"))
 			return;
-		e.Edit(asset => {
+		e.Edit(asset =>
+		{
 			AdjustedCrops.Clear();
 
 			var data = asset.AsDictionary<string, CropData>();
-			foreach (var kvp in data.Data) {
-				if (Variant == AffixVariant.Positive) {
-					if (kvp.Value.RegrowDays == -1) {
+			foreach (var kvp in data.Data)
+			{
+				if (Variant == AffixVariant.Positive)
+				{
+					if (kvp.Value.RegrowDays == -1)
+					{
 						int totalGrowthDays = kvp.Value.DaysInPhase.Sum();
 						kvp.Value.RegrowDays = (int)Math.Ceiling(totalGrowthDays / 3.0);
 						AdjustedCrops.Add(kvp.Key);
 					}
-				} else {
-					if (kvp.Value.RegrowDays != -1) {
+				}
+				else
+				{
+					if (kvp.Value.RegrowDays != -1)
+					{
 						kvp.Value.RegrowDays = -1;
 						AdjustedCrops.Add(kvp.Key);
 					}
@@ -109,8 +121,10 @@ internal sealed class RegrowthAffix : BaseVariantedSeasonAffix, ISeasonAffix {
 		}, priority: AssetEditPriority.Late);
 	}
 
-	private static void UpdateExistingCrops() {
-		foreach (var location in GameExt.GetAllLocations()) {
+	private static void UpdateExistingCrops()
+	{
+		foreach (var location in GameExt.GetAllLocations())
+		{
 			foreach (var terrainFeature in location.terrainFeatures.Values)
 				if (terrainFeature is HoeDirt dirt)
 					if (dirt.crop is not null)
@@ -122,13 +136,15 @@ internal sealed class RegrowthAffix : BaseVariantedSeasonAffix, ISeasonAffix {
 		}
 	}
 
-	private static void UpdateCrop(Crop crop) {
+	private static void UpdateCrop(Crop crop)
+	{
 		if (!crop.RegrowsAfterHarvest())
 			crop.fullyGrown.Value = false;
 		crop.updateDrawMath(TilePositionGetter.Value(crop));
 	}
 
-	private static void Crop_getSourceRect_Prefix(Crop __instance) {
+	private static void Crop_getSourceRect_Prefix(Crop __instance)
+	{
 		uint counter = GetSourceRectCallCounter.Push(__instance);
 		if (counter != 1)
 			return;
@@ -147,7 +163,8 @@ internal sealed class RegrowthAffix : BaseVariantedSeasonAffix, ISeasonAffix {
 		__instance.phaseToShow.Value = __instance.phaseDays.Count - (harvestable ? 1 : 2);
 	}
 
-	private static void Crop_getSourceRect_Postfix(Crop __instance) {
+	private static void Crop_getSourceRect_Postfix(Crop __instance)
+	{
 		uint counter = GetSourceRectCallCounter.Pop(__instance);
 		if (counter != 0)
 			return;
@@ -157,35 +174,30 @@ internal sealed class RegrowthAffix : BaseVariantedSeasonAffix, ISeasonAffix {
 
 	private static IEnumerable<CodeInstruction> Crop_getSourceRect_Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase originalMethod) {
 		try {
-			var instructionList = instructions.ToList();
-
 			var fullyGrownField = AccessTools.Field(typeof(Crop), nameof(Crop.fullyGrown));
 			var netBoolGetValue = AccessTools.PropertyGetter(typeof(Netcode.NetBool), nameof(Netcode.NetBool.Value));
 
-			for (int i = 0 ; i < instructionList.Count - 1 ; i++) {
-				var currentInstruction = instructionList[i];
-				var nextInstruction = instructionList[i + 1];
+			var matcher = new CodeMatcher(instructions);
 
-				if (currentInstruction.opcode == OpCodes.Ldfld && currentInstruction.operand is FieldInfo field && field == fullyGrownField &&
-					nextInstruction.opcode == OpCodes.Callvirt && nextInstruction.operand is MethodInfo method && method == netBoolGetValue) {
-					var instructionsToInsert = new List<CodeInstruction>
-					{
-					new CodeInstruction(OpCodes.Ldarg_0),
-					new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(RegrowthAffix), nameof(Crop_getSourceRect_Transpiler_FullyGrown)))
-				};
-					instructionList.InsertRange(i + 2, instructionsToInsert);
-					break;
-				}
-			}
+			matcher.MatchStartForward(
+				new CodeMatch(OpCodes.Ldfld, fullyGrownField),
+				new CodeMatch(OpCodes.Callvirt, netBoolGetValue)
+			)
+			.Advance(2)
+			.Insert(
+				new CodeInstruction(OpCodes.Ldarg_0),
+				new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(RegrowthAffix), nameof(Crop_getSourceRect_Transpiler_FullyGrown)))
+			);
 
-			return instructionList;
+			return matcher.InstructionEnumeration();
 		} catch (Exception ex) {
 			Mod.Monitor.Log($"Could not patch method {originalMethod} - {Mod.ModManifest.Name} probably won't work.\nReason: {ex}", LogLevel.Error);
 			return instructions;
 		}
 	}
 
-	public static bool Crop_getSourceRect_Transpiler_FullyGrown(bool fullyGrown, Crop crop) {
+	public static bool Crop_getSourceRect_Transpiler_FullyGrown(bool fullyGrown, Crop crop)
+	{
 		if (!fullyGrown)
 			return false;
 		var affix = Mod.ActiveAffixes.OfType<RegrowthAffix>().FirstOrDefault(affix => affix.Variant == AffixVariant.Positive);

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using HarmonyLib;
+﻿using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Shockah.Kokoro;
 using Shockah.Kokoro.Stardew;
@@ -11,12 +8,16 @@ using StardewValley.Extensions;
 using StardewValley.GameData.Locations;
 using StardewValley.Internal;
 using StardewValley.TerrainFeatures;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using SObject = StardewValley.Object;
 
 namespace Shockah.SeasonAffixes;
 
 // TODO: don't wait for falling animation, it's no longer needed
-internal sealed class BoonsAffix : BaseSeasonAffix, ISeasonAffix {
+internal sealed class BoonsAffix : BaseSeasonAffix, ISeasonAffix
+{
 	private static bool IsHarmonySetup = false;
 	private static readonly int PoofDelay = 2000;
 	private static readonly int SpawnDelay = 2250;
@@ -38,7 +39,8 @@ internal sealed class BoonsAffix : BaseSeasonAffix, ISeasonAffix {
 	public void OnRegister()
 		=> Apply(Mod.Harmony);
 
-	private void Apply(Harmony harmony) {
+	private void Apply(Harmony harmony)
+	{
 		if (IsHarmonySetup)
 			return;
 		IsHarmonySetup = true;
@@ -50,7 +52,8 @@ internal sealed class BoonsAffix : BaseSeasonAffix, ISeasonAffix {
 		);
 	}
 
-	private static void Tree_performTreeFall_Postfix(Tree __instance) {
+	private static void Tree_performTreeFall_Postfix(Tree __instance)
+	{
 		if (!__instance.stump.Value || __instance.health.Value > 0)
 			return;
 		if (!Mod.IsAffixActive(a => a is BoonsAffix))
@@ -58,7 +61,8 @@ internal sealed class BoonsAffix : BaseSeasonAffix, ISeasonAffix {
 		SpawnAnyForageAfterDelay(__instance.Location, __instance.Tile);
 	}
 
-	private static void SpawnAnyForageAfterDelay(GameLocation location, Vector2 point) {
+	private static void SpawnAnyForageAfterDelay(GameLocation location, Vector2 point)
+	{
 		var forage = GetForageToSpawn(location);
 		if (forage is null)
 			return;
@@ -67,7 +71,8 @@ internal sealed class BoonsAffix : BaseSeasonAffix, ISeasonAffix {
 		DelayedAction.functionAfterDelay(() => location.dropObject(forage, point * 64, Game1.viewport, initialPlacement: true), SpawnDelay);
 	}
 
-	private static SObject? GetForageToSpawn(GameLocation location) {
+	private static SObject? GetForageToSpawn(GameLocation location)
+	{
 		var random = new Random();
 		var possibleForage = GetPossibleForage(location, random);
 		if (possibleForage.Count == 0)
@@ -86,11 +91,13 @@ internal sealed class BoonsAffix : BaseSeasonAffix, ISeasonAffix {
 		return item;
 	}
 
-	private static List<SpawnForageData> GetPossibleForage(GameLocation location, Random random) {
+	private static List<SpawnForageData> GetPossibleForage(GameLocation location, Random random)
+	{
 		List<SpawnForageData> forage = new();
 		forage.AddRange(GetPossibleForage(location, location.Name, random));
 
-		if (forage.Count == 0) {
+		if (forage.Count == 0)
+		{
 			forage.AddRange(GetPossibleForage(location, "BusStop", random));
 			forage.AddRange(GetPossibleForage(location, "Forest", random));
 			forage.AddRange(GetPossibleForage(location, "Town", random));
@@ -101,13 +108,15 @@ internal sealed class BoonsAffix : BaseSeasonAffix, ISeasonAffix {
 		return forage;
 	}
 
-	private static List<SpawnForageData> GetPossibleForage(GameLocation location, string dataLocationName, Random random) {
+	private static List<SpawnForageData> GetPossibleForage(GameLocation location, string dataLocationName, Random random)
+	{
 		var data = Game1.content.Load<Dictionary<string, LocationData>>("Data\\Locations");
 		if (!data.TryGetValue(dataLocationName, out var locationData))
 			return new List<SpawnForageData>();
 
 		return locationData.Forage
-			.Where(entry => {
+			.Where(entry =>
+			{
 				if (entry.Season is not null && entry.Season.Value != location.GetSeason())
 					return false;
 				if (entry.Condition is not null && !GameStateQuery.CheckConditions(entry.Condition, location, null, null, null, random))
@@ -117,7 +126,8 @@ internal sealed class BoonsAffix : BaseSeasonAffix, ISeasonAffix {
 			.ToList();
 	}
 
-	private static void Poof(GameLocation location, Vector2 point) {
+	private static void Poof(GameLocation location, Vector2 point)
+	{
 		var sprite = new TemporaryAnimatedSprite(
 			textureName: Game1.mouseCursorsName,
 			sourceRect: new Rectangle(464, 1792, 16, 16),
