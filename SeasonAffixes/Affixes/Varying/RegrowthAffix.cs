@@ -172,28 +172,32 @@ internal sealed class RegrowthAffix : BaseVariantedSeasonAffix, ISeasonAffix
 			__instance.phaseToShow.Value = oldPhaseToShow.Value;
 	}
 
-	private static IEnumerable<CodeInstruction> Crop_getSourceRect_Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase originalMethod) {
-		try {
-			var fullyGrownField = AccessTools.Field(typeof(Crop), nameof(Crop.fullyGrown));
-			var netBoolGetValue = AccessTools.PropertyGetter(typeof(Netcode.NetBool), nameof(Netcode.NetBool.Value));
-
-			var matcher = new CodeMatcher(instructions);
-
-			matcher.MatchStartForward(
-				new CodeMatch(OpCodes.Ldfld, fullyGrownField),
-				new CodeMatch(OpCodes.Callvirt, netBoolGetValue)
-			)
-			.Advance(2)
-			.Insert(
-				new CodeInstruction(OpCodes.Ldarg_0),
-				new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(RegrowthAffix), nameof(Crop_getSourceRect_Transpiler_FullyGrown)))
-			);
-
-			return matcher.InstructionEnumeration();
-		} catch (Exception ex) {
-			Mod.Monitor.Log($"Could not patch method {originalMethod} - {Mod.ModManifest.Name} probably won't work.\nReason: {ex}", LogLevel.Error);
-			return instructions;
-		}
+	private static IEnumerable<CodeInstruction> Crop_getSourceRect_Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase originalMethod)
+	{
+	    try
+	    {
+	        var fullyGrownField = AccessTools.Field(typeof(Crop), nameof(Crop.fullyGrown));
+	        var netBoolGetValue = AccessTools.PropertyGetter(typeof(Netcode.NetBool), nameof(Netcode.NetBool.Value));
+	
+	        var matcher = new CodeMatcher(instructions);
+	
+	        matcher.MatchStartForward(
+	            new CodeMatch(OpCodes.Ldfld, fullyGrownField),
+	            new CodeMatch(OpCodes.Callvirt, netBoolGetValue)
+	        )
+	        .Advance(2)
+	        .Insert(
+	            new CodeInstruction(OpCodes.Ldarg_0),
+	            new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(RegrowthAffix), nameof(Crop_getSourceRect_Transpiler_FullyGrown)))
+	        );
+	
+	        return matcher.InstructionEnumeration();
+	    }
+	    catch (Exception ex)
+	    {
+	        Mod.Monitor.Log($"Could not patch method {originalMethod} - {Mod.ModManifest.Name} probably won't work.\nReason: {ex}", LogLevel.Error);
+	        return instructions;
+	    }
 	}
 
 	public static bool Crop_getSourceRect_Transpiler_FullyGrown(bool fullyGrown, Crop crop)
